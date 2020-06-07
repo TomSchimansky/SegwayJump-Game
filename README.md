@@ -6,7 +6,7 @@ To create a standalone application use py2app or py2exe, and make sure you got t
 
 For macOS you need py2app:
 ```
-python3.7 setup.py py2app
+python3.6 setup.py py2app
 ```
 For windows you need to use py2exe instead.
 
