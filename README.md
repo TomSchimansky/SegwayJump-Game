@@ -3,7 +3,7 @@ This is a complete example of a game made with python and pygame. It contains a 
 
 To start the game you need python3 with pygame installed. Then you can do:
 ```
-python3.6 main.py
+python3 main.py
 ```
 
 ### Create standalone application
@@ -11,7 +11,7 @@ To create a standalone application use py2app or py2exe, and make sure you got t
 
 For macOS you need py2app:
 ```
-python3.6 setup.py py2app
+python3 setup.py py2app
 ```
 For windows you need to use py2exe instead.
 
