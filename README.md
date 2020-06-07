@@ -1,6 +1,11 @@
 ![](documentation/segway_jump_overview.png)
 This is a complete example of a game made with python and pygame. It contains a start, menu and splash-screen with music and sound-effects.
 
+To start the game you need python3 with pygame installed. Then you can do:
+```
+python3.6 main.py
+```
+
 ### Create standalone application
 To create a standalone application use py2app or py2exe, and make sure you got the exact same library versions as in my requirements.txt.
 
