@@ -1,4 +1,4 @@
-""" SegwayJump Copyright © 2016 Tom Schimansky """
+""" SegwayJump Copyright © 2018 Tom Schimansky """
 
 from segway_jump_libraries.settings import *
 from segway_jump_objects.platform import Platform, SideMovingPlatform, UpMovingPlatform
