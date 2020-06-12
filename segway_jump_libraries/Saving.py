@@ -1,4 +1,4 @@
-#------------Saving library by Tom Schimansky 2018---------------------------------------------
+# ------------ saves python lists to .txt ---------------------------------------------
 #
 # Functions:
 # -save( <filename.txt> , <array (1D or 2D)>)
@@ -8,7 +8,7 @@
 # -read( <filename.txt> , <datatype to read> , <number of splits if its 2D, else type 1> )
 #   -> datatype can be "int" or "float"
 #   
-#----------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------
 
 def save(filename,array,d):
     f = open(filename,"w")
