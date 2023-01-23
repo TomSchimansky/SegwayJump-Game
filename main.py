@@ -122,13 +122,13 @@ class Game(object):
             self.path + "/assets/images/startbutton.png", "startbutton", (172, 60)).convert_alpha()
 
         self.steelpate1_image = load_image_from_txt(
-            self.path + "/assets/images/Steelplate1.png", "steelplate1", (405, 191)).convert_alpha()
+            self.path + "/assets/images/steelplate1.png", "steelplate1", (405, 191)).convert_alpha()
         self.steelpate2_image = load_image_from_txt(
-            self.path + "/assets/images/Steelplate2.png", "steelplate2", (328, 302)).convert_alpha()
+            self.path + "/assets/images/steelplate2.png", "steelplate2", (328, 302)).convert_alpha()
         self.steelpate3_image = load_image_from_txt(
-            self.path + "/assets/images/Steelplate3.png", "steelplate3", (300, 191)).convert_alpha()
+            self.path + "/assets/images/steelplate3.png", "steelplate3", (300, 191)).convert_alpha()
         self.steelpate4_image = load_image_from_txt(
-            self.path + "/assets/images/Steelplate4.png", "steelplate4", (190, 300)).convert_alpha()
+            self.path + "/assets/images/steelplate4.png", "steelplate4", (190, 300)).convert_alpha()
 
     def new(self):
         self.backgroundmusic.stop()
