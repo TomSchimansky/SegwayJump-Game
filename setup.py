@@ -1,82 +1,79 @@
-"""
-compilation worked with:
-python 3.6.10
-pygame==1.9.6
-argv_emulation': False (!)
-
-zsh: python3.6 setup.py py2app --packages=pygame
-"""
-
-
 from setuptools import setup
 
 APP = ['main.py']
 
-APP_NAME = "Segway Jump"
+APP_NAME = "SegwayJump"
 
-ICON_FILES = ["assets/icons/icon.txt"]
+ICON_FILES = ["assets/icons/icon.png"]
 
-HIGHSCORE_FILES = ["assets/highscore_files/highscore.txt"]
+HIGHSCORE_FILES = ["assets/highscores/highscores.json"]
+
+LEVEL_FILES = ["assets/levels/levels.json"]
 
 FONT_FILES = ["assets/fonts/Chalkboard_Bold.ttf"]
 
 SOUND_FILES = ["assets/sounds/sfx_die.wav",
-               "assets/sounds/Ambient Background Music - Cicada 3301.wav",
-               "assets/sounds/Blup.wav",
-               "assets/sounds/button-27.wav",
-               "assets/sounds/JumpSound.wav",
-               "assets/sounds/Ding - Sound.wav",
+               "assets/sounds/ambient_background_music_cicada_3301.wav",
+               "assets/sounds/blup.wav",
+               "assets/sounds/button_27.wav",
+               "assets/sounds/jump_Sound.wav",
+               "assets/sounds/ding_sound.wav",
                "assets/sounds/powerup.wav"]
 
-IMAGE_FILES = ["assets/images/banner.txt",
-               "assets/images/coin1.txt",
-               "assets/images/coins.txt",
-               "assets/images/endbutton.txt",
-               "assets/images/floatingplatform.txt",
-               "assets/images/middleplatform.txt",
-               "assets/images/movingfloatingplatform.txt",
-               "assets/images/movingplatform.txt",
-               "assets/images/movingsocketplatform.txt",
-               "assets/images/platform.txt",
-               "assets/images/playerleft1.txt",
-               "assets/images/playerleft2.txt",
-               "assets/images/playerleft3.txt",
-               "assets/images/playerleft4.txt",
-               "assets/images/playerleft5.txt",
-               "assets/images/startbutton.txt",
-               "assets/images/speeddrop.txt",
-               "assets/images/startbutton.txt",
-               "assets/images/jumpboost.txt",
-               "assets/images/levels.txt",
-               "assets/images/finish.txt",
-               "assets/images/menubutton.txt",
-               "assets/images/steelplate1.txt",
-               "assets/images/steelplate2.txt",
-               "assets/images/steelplate3.txt",
-               "assets/images/steelplate4.txt",
-               "assets/highscore_files/highscore.txt"]
+IMAGE_FILES = ["assets/images/banner.png",
+               "assets/images/coin_1.png",
+               "assets/images/coin_10.png",
+               "assets/images/coins.png",
+               "assets/images/endbutton.png",
+               "assets/images/finish.png",
+               "assets/images/floatingplatform.png",
+               "assets/images/floatingplatformsocket.png",
+               "assets/images/jumpboost.png",
+               "assets/images/level_list.png",
+               "assets/images/levelmenu.png",
+               "assets/images/menubutton.png",
+               "assets/images/middleplatform.png",
+               "assets/images/movingfloatingplatform.png",
+               "assets/images/movingplatform.png",
+               "assets/images/movingsocketplatform.png",
+               "assets/images/pause.png",
+               "assets/images/platform.png",
+               "assets/images/play.png",
+               "assets/images/player_jump_1.png",
+               "assets/images/player_jump_2.png",
+               "assets/images/player_left_1.png",
+               "assets/images/player_left_2.png",
+               "assets/images/player_left_3.png",
+               "assets/images/speeddrop.png",
+               "assets/images/startbutton.png",
+               "assets/images/steelplate_1.png",
+               "assets/images/steelplate_2.png",
+               "assets/images/steelplate_3.png",
+               "assets/images/steelplate_4.png"]
 
-OPTIONS = {'argv_emulation': False,
-           'iconfile': 'assets/icons/SegwayJumpIcon.icns',
+OPTIONS = {'argv_emulation': True,
+           'iconfile': 'assets/icons/icon.icns',
+           'includes': ['pygame'],
+           'excludes': ['opencv', 'numpy', 'scipy'],
            'plist': {
                'CFBundleName': APP_NAME,
                'CFBundleDisplayName': APP_NAME,
-               'CFBundleGetInfoString': "Jump with Segway",
+               'CFBundleGetInfoString': "SegwayJump game made with pygame",
                'CFBundleIdentifier': "com.TomSchimansky.SegwayJump",
-               'CFBundleVersion': "3.2.0",
-               'CFBundleShortVersionString': "3.2.0",
+               'CFBundleVersion': "4.0.0",
+               'CFBundleShortVersionString': "4.0.0",
                'NSHumanReadableCopyright': u"Copyright © 2018, Tom Schimansky, All Rights Reserved"
               }}
 
-setup(
-    name=APP_NAME,
-    app=APP,
-    author='Tom Schimansky',
-    data_files=[("assets/images", IMAGE_FILES),
-                ("assets/sounds", SOUND_FILES),
-                ("assets/fonts", FONT_FILES),
-                ("assets/icons", ICON_FILES),
-                ("assets/highscore_files", HIGHSCORE_FILES)],
-    options={'py2app': OPTIONS},
-    setup_requires=['py2app'],
-)
+# compile to .app for macOS with py2app:
+setup(name=APP_NAME,
+      app=APP,
+      author='Tom Schimansky',
+      data_files=[("assets/images", IMAGE_FILES),
+                  ("assets/sounds", SOUND_FILES),
+                  ("assets/fonts", FONT_FILES),
+                  ("assets/icons", ICON_FILES),
+                  ("assets/highscores", HIGHSCORE_FILES),
+                  ("assets/levels", LEVEL_FILES)],
+      options={'py2app': OPTIONS},
+      setup_requires=['py2app'])

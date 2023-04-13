@@ -1,0 +1,19 @@
+column 0: [[y-position, style], [y-position, style], ... ],
+column 1: [...],
+column 2: [...],
+...
+
+y-position:
+pixels from the ground
+
+style:
+1 - Platform
+2 - FloatingPlatform
+3 - SideMovingPlatform
+4 - UpMovingPlatform
+5 - Coin
+6 - UpMovingPlatformSocket
+7 - EmptyPlatform
+8 - Finish
+9 - Jumpboost
+10 - SpeedDrop

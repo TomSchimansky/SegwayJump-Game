@@ -1,3 +1,1 @@
-pygame~=1.9.6
-py2app~=0.21
-setuptools~=40.6.2
+pygame~=2.3.0

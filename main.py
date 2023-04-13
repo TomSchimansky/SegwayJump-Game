@@ -1,150 +1,152 @@
 """ SegwayJump Copyright © 2018 Tom Schimansky """
 
-from segway_jump_libraries.settings import *
-from segway_jump_objects.platform import Platform, SideMovingPlatform, UpMovingPlatform
-from segway_jump_objects.player import Player
-from segway_jump_objects.coin import Coin
-from segway_jump_objects.menubutton import MenuButton
-from segway_jump_objects.item import EndItem, JumpBoost, SpeedDrop
-from segway_jump_objects.background import Background
-from segway_jump_libraries.Saving import save, read
-
-from pygame.locals import *
+from settings import *
+from segway_jump_sprites.platforms import Platform, SideMovingPlatform, UpMovingPlatform
+from segway_jump_sprites.player import Player
+from segway_jump_sprites.coin import Coin
+from segway_jump_sprites.menubutton import MenuButton
+from segway_jump_sprites.items import EndItem, JumpBoost, SpeedDrop
+from segway_jump_sprites.background import Background
 
 import os
-import random as rd
-
-import segway_jump_levels.level1
-import segway_jump_levels.level2
-import segway_jump_levels.level3
-
-import pygame as pg
+import json
+import random
+import pygame
 
 
-class Game(object):
+class Game:
     def __init__(self):
-        pg.init()
-        print(TITLE + " Version " + VERSION + " Copyright © 2018 Tom Schimansky")
-
-        global HEIGHT
-        info_object = pg.display.Info()
-        HEIGHT = round(WIDTH * (info_object.current_h / info_object.current_w))
-
-        flags = HWSURFACE | DOUBLEBUF | FULLSCREEN
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT), flags, 32)
-        self.load_screen()
-
-        pg.font.init()
-
-        self.path = os.path.dirname(__file__)
+        pygame.init()
+        pygame.font.init()
+        pygame.mixer.init()
 
         self.running = True
         self.playing = False
         self.pause = False
-        self.act_level = None
+        self.current_level = None
         self.time = 0
         self.command_pressed = False
+        self.current_path = os.path.dirname(__file__)
 
-        self.highscore = []
+        self.icon_image = pygame.image.load(self.current_path + "/assets/icons/icon.png")
+        pygame.display.set_icon(self.icon_image)
+        pygame.display.set_caption(TITLE)
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SHOWN)
+        self.clock = pygame.time.Clock()
+
+        # load levels and highscores
         self.levels = []
+        self.load_levels()
+        self.highscores = []
+        self.load_highscores()
+        if len(self.highscores) != len(self.levels):
+            raise ValueError("highscores and level files do not match")
 
-        pg.display.set_icon(load_image_from_txt(self.path + "/assets/icons/icon.png", "icon", (312, 312)))
-        pg.mixer.init()
-        pg.display.set_caption(TITLE)
-        self.clock = pg.time.Clock()
+        # load sounds
+        self.background_music = pygame.mixer.Sound(self.current_path + "/assets/sounds/ambient_background_music_cicada_3301.wav")
+        self.coin_sound = pygame.mixer.Sound(self.current_path + "/assets/sounds/blup.wav")
+        self.die_sound = pygame.mixer.Sound(self.current_path + "/assets/sounds/sfx_die.wav")
+        self.button_sound = pygame.mixer.Sound(self.current_path + "/assets/sounds/button_27.wav")
+        self.jump_sound = pygame.mixer.Sound(self.current_path + "/assets/sounds/jump_sound.wav")
+        self.powerup_sound = pygame.mixer.Sound(self.current_path + "/assets/sounds/powerup.wav")
+        self.win_sound = pygame.mixer.Sound(self.current_path + "/assets/sounds/ding_sound.wav")
 
-        self.load()
+        # load menu images
+        self.coins_image = pygame.image.load(self.current_path + "/assets/images/coins.png")
+        self.endbutton_image = pygame.image.load(self.current_path + "/assets/images/endbutton.png")
+        self.banner_image = pygame.image.load(self.current_path + "/assets/images/banner.png")
+        self.level_list_image = pygame.image.load(self.current_path + "/assets/images/level_list.png")
+        self.menubutton_image = pygame.image.load(self.current_path + "/assets/images/menubutton.png")
+        self.startbutton_image = pygame.image.load(self.current_path + "/assets/images/startbutton.png")
 
-    def load(self):
-        try:
-            self.highscore = read(self.path + "/assets/highscore_files/highscore.txt", "int", 1)
-        except Exception:
-            self.highscore = [0, 0, 0]
+        # load character images
+        self.character_left_walking_1_image = pygame.image.load(self.current_path + "/assets/images/player_left_1.png")
+        self.character_left_walking_2_image = pygame.image.load(self.current_path + "/assets/images/player_left_2.png")
+        self.character_left_walking_3_image = pygame.image.load(self.current_path + "/assets/images/player_left_3.png")
+        self.character_jump_1_image = pygame.image.load(self.current_path + "/assets/images/player_jump_1.png")
+        self.character_jump_2_image = pygame.image.load(self.current_path + "/assets/images/player_jump_2.png")
 
-        self.levels.append(segway_jump_levels.level1.Level())
-        self.levels.append(segway_jump_levels.level2.Level())
-        self.levels.append(segway_jump_levels.level3.Level())
+        # load game images
+        self.platform_image = pygame.image.load(self.current_path + "/assets/images/platform.png").convert()
+        self.floatingplatorm_image = pygame.image.load(self.current_path + "/assets/images/floatingplatform.png")
+        self.upmovingplatformsocket_image = pygame.image.load(self.current_path + "/assets/images/movingsocketplatform.png")
+        self.emptyplatform_image = pygame.image.load(self.current_path + "/assets/images/middleplatform.png").convert()
+        self.sidemovingplatform_image = pygame.image.load(self.current_path + "/assets/images/movingfloatingplatform.png")
+        self.upmovingplatform_image = pygame.image.load(self.current_path + "/assets/images/movingplatform.png")
+        self.coin_1_image = pygame.image.load(self.current_path + "/assets/images/coin_1.png")
+        self.finish_image = pygame.image.load(self.current_path + "/assets/images/finish.png")
+        self.jumpboost_image = pygame.image.load(self.current_path + "/assets/images/jumpboost.png")
+        self.speeddrop_image = pygame.image.load(self.current_path + "/assets/images/speeddrop.png")
+        self.steelpate_1_image = pygame.image.load(self.current_path + "/assets/images/steelplate_1.png")
+        self.steelpate_2_image = pygame.image.load(self.current_path + "/assets/images/steelplate_2.png")
+        self.steelpate_3_image = pygame.image.load(self.current_path + "/assets/images/steelplate_3.png")
+        self.steelpate_4_image = pygame.image.load(self.current_path + "/assets/images/steelplate_4.png")
 
-        self.backgroundmusic = pg.mixer.Sound(self.path + "/assets/sounds/Ambient Background Music - Cicada 3301.wav")
-        self.coinsound = pg.mixer.Sound(self.path + "/assets/sounds/Blup.wav")
-        self.diesound = pg.mixer.Sound(self.path + "/assets/sounds/sfx_die.wav")
-        self.buttonsound = pg.mixer.Sound(self.path + "/assets/sounds/button-27.wav")
-        self.jumpsound = pg.mixer.Sound(self.path + "/assets/sounds/JumpSound.wav")
-        self.powerupsound = pg.mixer.Sound(self.path + "/assets/sounds/powerup.wav")
-        self.winsound = pg.mixer.Sound(self.path + "/assets/sounds/Ding - Sound.wav")
+    def load_levels(self):
+        with open(self.current_path + "/assets/levels/levels.json", "r") as file:
+            self.levels = json.load(file)
 
-        self.coins_image = load_image_from_txt(
-            self.path + "/assets/images/coins.png", "coins", (174, 60)).convert_alpha()
-        self.endbutton_image = load_image_from_txt(
-            self.path + "/assets/images/endbutton.png", "endbutton", (171, 60)).convert_alpha()
-        self.banner_icon = load_image_from_txt(self.path + "/assets/icons/icon.png", "icon", (312, 312)).convert_alpha()
-        self.banner = load_image_from_txt(self.path + "/assets/images/banner.png", "banner", (764, 311)).convert_alpha()
+    def load_highscores(self):
+        if os.path.exists(self.current_path + "/assets/highscores/highscores.json"):
+            with open(self.current_path + "/assets/highscores/highscores.json", "r") as file:
+                self.highscores = json.load(file)
+        else:
+            self.highscores = [0] * len(self.levels)
 
-        self.lw1 = load_image_from_txt(self.path + "/assets/images/playerleft1.png",
-                                       "playerleft1", (50, 138)).convert_alpha()
-        self.lw2 = load_image_from_txt(self.path + "/assets/images/playerleft2.png",
-                                       "playerleft2", (50, 138)).convert_alpha()
-        self.lw3 = load_image_from_txt(self.path + "/assets/images/playerleft3.png",
-                                       "playerleft3", (50, 138)).convert_alpha()
-        self.j4 = load_image_from_txt(self.path + "/assets/images/playerleft4.png",
-                                      "playerleft4", (50, 122)).convert_alpha()
-        self.j5 = load_image_from_txt(self.path + "/assets/images/playerleft5.png",
-                                      "playerleft5", (50, 154)).convert_alpha()
+    def save_highscore(self):
+        with open(self.current_path + "/assets/highscores/highscores.json", "w") as file:
+            json.dump(self.highscores, file)
 
-        self.platform_image = load_image_from_txt(
-            self.path + "/assets/images/platform.png", "platform", (120, 120)).convert()
-        self.floatingplatorm_image = load_image_from_txt(self.path + "/assets/images/floatingplatform.png",
-                                                         "floatingplatform", (120, 31)).convert_alpha()
-        self.upmovingplatformsocket_image = load_image_from_txt(
-            self.path + "/assets/images/movingsocketplatform.png", "movingsocketplatform", (120, 120)).convert_alpha()
-        self.emptyplatform_image = load_image_from_txt(self.path + "/assets/images/middleplatform.png",
-                                                       "middleplatform", (120, 120)).convert()
-        self.sidemovingplatform_image = load_image_from_txt(
-            self.path + "/assets/images/movingfloatingplatform.png", "movingfloatingplatform", (120, 31)).convert_alpha()
-        self.upmovingplatform_image = load_image_from_txt(self.path + "/assets/images/movingplatform.png",
-                                                          "movingplatform", (120, 320)).convert_alpha()
+    def create_text(self, text, size, color, x, y):
+        font = pygame.font.Font("assets/fonts/Chalkboard_Bold.ttf", size)
+        surface = font.render(text, True, color)
+        rect = surface.get_rect()
+        rect.midtop = (x, y)
+        self.screen.blit(surface, rect)
 
-        self.coin1_image = load_image_from_txt(
-            self.path + "/assets/images/coin1.png", "coin1", (50, 50)).convert_alpha()
+    def start_screen(self):
+        self.background_music.stop()
+        self.background_music.play()
+        self.screen.fill(BLACK)
+        self.screen.blit(self.banner_image, (WIDTH / 2 - (self.banner_image.get_width() / 2), 100))
+        button = MenuButton(self, WIDTH / 2, HEIGHT / 2 + 160, self.menubutton_image, enter=True)
 
-        self.finish_image = load_image_from_txt(
-            self.path + "/assets/images/finish.png", "finish", (100, 100)).convert_alpha()
-        self.jumpboost_image = load_image_from_txt(
-            self.path + "/assets/images/jumpboost.png", "jumpboost", (100, 100)).convert_alpha()
-        self.speeddrop_image = load_image_from_txt(
-            self.path + "/assets/images/speeddrop.png", "speeddrop", (100, 100)).convert_alpha()
+        pygame.display.flip()
+        self.wait([button.check_click])
+        self.level_screen()
 
-        self.level_image = load_image_from_txt(
-            self.path + "/assets/images/levels.png", "levels", (927, 564)).convert_alpha()
-        self.menubutton_image = load_image_from_txt(
-            self.path + "/assets/images/menubutton.png", "menubutton", (171, 60)).convert_alpha()
-        self.startbutton_image = load_image_from_txt(
-            self.path + "/assets/images/startbutton.png", "startbutton", (172, 60)).convert_alpha()
+    def level_screen(self):
+        if self.running is False:
+            return
 
-        self.steelpate1_image = load_image_from_txt(
-            self.path + "/assets/images/Steelplate1.png", "steelplate1", (405, 191)).convert_alpha()
-        self.steelpate2_image = load_image_from_txt(
-            self.path + "/assets/images/Steelplate2.png", "steelplate2", (328, 302)).convert_alpha()
-        self.steelpate3_image = load_image_from_txt(
-            self.path + "/assets/images/Steelplate3.png", "steelplate3", (300, 191)).convert_alpha()
-        self.steelpate4_image = load_image_from_txt(
-            self.path + "/assets/images/Steelplate4.png", "steelplate4", (190, 300)).convert_alpha()
+        self.screen.fill(BLACK)
+
+        self.create_text("Levels:", 40, COIN_COLOR, WIDTH / 2, 30)
+
+        start_buttons = []
+        for i, level in enumerate(self.levels):
+            self.screen.blit(self.level_list_image, (WIDTH / 2 - (self.level_list_image.get_width() / 2), 100 + i * (self.level_list_image.get_height() + 30)))
+            self.create_text(level["name"], 30, COIN_COLOR, WIDTH / 2 - 200, 100 + i * (self.level_list_image.get_height() + 30) + 30)
+            self.create_text(f"Highscore: {self.highscores[i]}/{level['maxcoins']}", 20, COIN_COLOR, WIDTH / 2 - 50, 100 + i * (self.level_list_image.get_height() + 30) + 30)
+            start_buttons.append(MenuButton(self, WIDTH / 2 + 180, 100 + i * (self.level_list_image.get_height() + 30) + 30, self.startbutton_image))
+
+        pygame.display.flip()
+        self.current_level = self.wait([button.check_click for button in start_buttons])
 
     def new(self):
-        self.backgroundmusic.stop()
-        self.backgroundmusic.play(-1)
-        self.player = Player(self)
+        self.background_music.stop()
+        self.background_music.play(-1)
 
-        self.platnumber = 0
-        self.shift = 0
+        self.current_column_number = 0
+        self.current_shift = 0
         self.score = 0
+        self.last_background_x_pos = 100
 
-        self.platforms = pg.sprite.Group()
-        self.backgrounds = pg.sprite.Group()
-        self.lastbackground = 100
-        self.coins = pg.sprite.Group()
-
-        self.all_sprites = pg.sprite.Group()
+        self.player = Player(self)
+        self.platforms = pygame.sprite.Group()
+        self.backgrounds = pygame.sprite.Group()
+        self.coins = pygame.sprite.Group()
+        self.all_sprites = pygame.sprite.Group()
         self.all_sprites.add(self.player)
 
     def run(self):
@@ -158,56 +160,53 @@ class Game(object):
     def update(self):
         self.all_sprites.update()
 
-        if len(self.platforms) < 30:
-            try:
-                for i in range(len(self.levels[self.act_level].array[self.platnumber])):
-                    if self.levels[self.act_level].array[self.platnumber][i][1] == 1 or self.levels[self.act_level].array[self.platnumber][i][1] == 2 or self.levels[self.act_level].array[self.platnumber][i][1] == 6 or self.levels[self.act_level].array[self.platnumber][i][1] == 7:
-                        platform = Platform(self, round(self.platnumber * 120) - self.shift, HEIGHT -
-                                            self.levels[self.act_level].array[self.platnumber][i][0], self.levels[self.act_level].array[self.platnumber][i][1])
-                        self.platforms.add(platform)
-                        self.all_sprites.add(platform)
-                    if self.levels[self.act_level].array[self.platnumber][i][1] == 3:
-                        platform = SideMovingPlatform(self, round(self.platnumber * 120) - self.shift, HEIGHT -
-                                                      self.levels[self.act_level].array[self.platnumber][i][0], self.levels[self.act_level].array[self.platnumber][i][1])
-                        self.platforms.add(platform)
-                        self.all_sprites.add(platform)
-                    if self.levels[self.act_level].array[self.platnumber][i][1] == 5:
-                        coin = Coin(self, (self.platnumber * 120) - self.shift, HEIGHT -
-                                    self.levels[self.act_level].array[self.platnumber][i][0])
-                        self.coins.add(coin)
-                        self.all_sprites.add(coin)
-                    if self.levels[self.act_level].array[self.platnumber][i][1] == 4:
-                        platform = UpMovingPlatform(round(self.platnumber * 120) - self.shift,
-                                                    HEIGHT - self.levels[self.act_level].array[self.platnumber][i][0], self)
-                        self.platforms.add(platform)
-                        self.all_sprites.add(platform)
-                    if self.levels[self.act_level].array[self.platnumber][i][1] == 8:
-                        item = EndItem(round(self.platnumber * 120) - self.shift, HEIGHT -
-                                       self.levels[self.act_level].array[self.platnumber][i][0], self)
-                        self.coins.add(item)
-                        self.all_sprites.add(item)
-                    if self.levels[self.act_level].array[self.platnumber][i][1] == 9:
-                        item = JumpBoost(round(self.platnumber * 120) - self.shift, HEIGHT -
-                                         self.levels[self.act_level].array[self.platnumber][i][0], self)
-                        self.coins.add(item)
-                        self.all_sprites.add(item)
-                    if self.levels[self.act_level].array[self.platnumber][i][1] == 10:
-                        item = SpeedDrop(round(self.platnumber * 120) - self.shift, HEIGHT -
-                                         self.levels[self.act_level].array[self.platnumber][i][0], self)
-                        self.coins.add(item)
-                        self.all_sprites.add(item)
-            except:
-                pass
-            self.platnumber += 1
+        level_array = self.levels[self.current_level]["array"]
+        if len(self.all_sprites) < 50 and self.current_column_number < len(level_array):
 
-        if len(self.backgrounds) < 5:
-            pos = self.lastbackground + rd.randint(100, 300)
-            b = Background(self, pos, rd.randint(100, 600))
-            self.lastbackground = pos + b.rect.width
-            self.backgrounds.add(b)
+            level_array_column = level_array[self.current_column_number]
+            for i in range(len(level_array_column)):
+
+                x_position = round(self.current_column_number * 120) - self.current_shift
+                y_position = HEIGHT - level_array_column[i][0]
+
+                if level_array_column[i][1] in (1, 2, 6, 7):
+                    platform = Platform(self, x_position, y_position, level_array_column[i][1])
+                    self.platforms.add(platform)
+                    self.all_sprites.add(platform)
+                elif level_array_column[i][1] == 3:
+                    platform = SideMovingPlatform(self, x_position, y_position)
+                    self.platforms.add(platform)
+                    self.all_sprites.add(platform)
+                elif level_array_column[i][1] == 4:
+                    platform = UpMovingPlatform(self, x_position, y_position)
+                    self.platforms.add(platform)
+                    self.all_sprites.add(platform)
+                elif level_array_column[i][1] == 5:
+                    coin = Coin(self, x_position, y_position)
+                    self.coins.add(coin)
+                    self.all_sprites.add(coin)
+                elif level_array_column[i][1] == 8:
+                    item = EndItem(self, x_position, y_position)
+                    self.coins.add(item)
+                    self.all_sprites.add(item)
+                elif level_array_column[i][1] == 9:
+                    item = JumpBoost(self, x_position, y_position)
+                    self.coins.add(item)
+                    self.all_sprites.add(item)
+                elif level_array_column[i][1] == 10:
+                    item = SpeedDrop(self, x_position, y_position)
+                    self.coins.add(item)
+                    self.all_sprites.add(item)
+            self.current_column_number += 1
+
+        if len(self.backgrounds) < 6:
+            new_x_pos = self.last_background_x_pos + random.randint(100, 300)
+            new_background = Background(self, self.last_background_x_pos + random.randint(100, 300), random.randint(100, 600))
+            self.last_background_x_pos = new_x_pos + new_background.rect.width
+            self.backgrounds.add(new_background)
 
         if self.player.rect.x >= WIDTH / 2:
-            self.shift += abs(self.player.speed.x)
+            self.current_shift += abs(self.player.speed.x)
             self.player.rect.x -= abs(self.player.speed.x)
             for platform in self.platforms:
                 platform.rect.right -= abs(self.player.speed.x)
@@ -217,7 +216,7 @@ class Game(object):
                 coin.rect.right -= abs(self.player.speed.x)
                 if coin.rect.right < 0:
                     coin.kill()
-            self.lastbackground -= abs(self.player.speed.x) / 2
+            self.last_background_x_pos -= abs(self.player.speed.x) / 2
             for background in self.backgrounds:
                 background.rect.right -= abs(self.player.speed.x) / 2
                 if background.rect.right < 0:
@@ -228,166 +227,103 @@ class Game(object):
                 self.player.rect.y = -200
             else:
                 self.playing = False
-                self.diesound.play()
+                self.die_sound.play()
 
         if self.player.rect.x < 0:
             self.player.rect.x = 0
             self.player.speed.x = 0
 
-        pos = pg.mouse.get_pos()
-        if pg.mouse.get_pressed()[0] == 1:
-            if pos[0] > WIDTH - 200 and pos[0] < WIDTH - 200 + 180 and pos[1] > 20 and pos[1] < 20 + 60:
+        pos = pygame.mouse.get_pos()
+        if pygame.mouse.get_pressed()[0] == 1:
+            if WIDTH - 200 < pos[0] < WIDTH - 200 + 180 and 20 < pos[1] < 20 + 60:
                 self.playing = False
-                self.buttonsound.play()
+                self.button_sound.play()
 
     def events(self):
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
                 self.running = False
                 self.playing = False
 
-            if event.type == pg.KEYDOWN:
+            if event.type == pygame.KEYDOWN:
                 if event.key == 310:
                     self.command_pressed = True
                 if event.key == 113 and self.command_pressed is True:
                     self.running = False
                     self.playing = False
-                if event.key == pg.K_SPACE or event.key == pg.K_UP:
+                if event.key == pygame.K_SPACE or event.key == pygame.K_UP:
                     self.player.jump()
-            if event.type == pg.KEYUP:
+            if event.type == pygame.KEYUP:
                 if event.key == 310:
                     self.command_pressed = False
 
     def draw(self):
-
         self.screen.fill(BLACK)
         self.backgrounds.draw(self.screen)
         self.all_sprites.draw(self.screen)
 
         if SHOW_FPS is True:
-            self.new_text("fps: " + str(round(self.clock.get_fps())), 15, WHITE, "chalkboard", 230, 10)
-            pg.display.set_caption(str(round(self.clock.get_fps())))
+            self.create_text(f"FPS: {round(self.clock.get_fps())}", 17, WHITE, 245, 20)
 
         self.screen.blit(self.coins_image, (20, 20))
         self.screen.blit(self.endbutton_image, (WIDTH - 200, 20))
-        self.new_text(str(self.score), 40, COIN_COLOR, "chalkboard", 90, 25)
+        self.create_text(str(self.score), 40, COIN_COLOR, 90, 25)
 
         if self.player.jumpboost > 0:
             self.screen.blit(self.jumpboost_image, (220, 20))
         if self.player.speeddrop > 0:
             self.screen.blit(self.speeddrop_image, (360, 20))
 
-        pg.display.flip()
+        pygame.display.flip()
 
-    def new_text(self, text, size, color, font, x, y):
-        font = pg.font.Font("assets/fonts/Chalkboard_Bold.ttf", size)
-        surface = font.render(text, True, color)
-        rect = surface.get_rect()
-        rect.midtop = (x, y)
-        self.screen.blit(surface, rect)
-
-    def wait(self, funcs):
-        waiting = True
-        while waiting:
+    def wait(self, wait_functions):
+        while self.running:
             self.clock.tick(FPS)
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    waiting = False
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
                     self.running = False
-
-                if event.type == pg.KEYDOWN:
+                if event.type == pygame.KEYDOWN:
                     if event.key == 310:
                         self.command_pressed = True
-                if event.type == pg.KEYUP:
+                if event.type == pygame.KEYUP:
                     if event.key == 310:
                         self.command_pressed = False
-                if event.type == pg.KEYDOWN:
+                if event.type == pygame.KEYDOWN:
                     if event.key == 113 and self.command_pressed is True:
-                        waiting = False
                         self.running = False
                     if event.key == 27:
-                        waiting = False
                         self.running = False
 
-            for i in range(len(funcs)):
-                if funcs[i]() is True:
+            for i, function in enumerate(wait_functions):
+                if function() is True:
                     return i
 
-    def start_screen(self):
-        self.backgroundmusic.stop()
-        self.backgroundmusic.play()
-        self.screen.fill(BLACK)
-        self.screen.blit(self.banner, (WIDTH / 2 - (self.banner.get_width() / 2), 100))
-        button = MenuButton(self, WIDTH / 2, HEIGHT / 2 + 160, self.menubutton_image, enter=True)
-
-        pg.display.flip()
-
-        self.wait([button.check_click])
-
-        self.level_screen()
-
     def end_screen(self):
-        self.screen.fill(BLACK)
         if self.running is False:
             return
 
-        if self.score > self.highscore[self.act_level]:
-            self.highscore[self.act_level] = self.score
-            self.new_text("NEW HIGHSCORE", 40, COIN_COLOR, "chalkboard", WIDTH / 2 + 150, 300)
+        self.screen.fill(BLACK)
 
-        self.screen.blit(self.banner_icon, (WIDTH / 2 - (self.banner_icon.get_width() / 2) - 200, 100))
-        self.new_text("SCORE: " + str(self.score), 40, COIN_COLOR, "chalkboard", WIDTH / 2 + 150, 150)
-        self.new_text("HIGHSCORE: " + str(self.highscore[self.act_level]),
-                      40, COIN_COLOR, "chalkboard", WIDTH / 2 + 150, 220)
+        if self.score > self.highscores[self.current_level]:
+            self.highscores[self.current_level] = self.score
+            self.create_text("NEW HIGHSCORE", 40, COIN_COLOR, WIDTH / 2 + 150, 300)
+
+        self.screen.blit(self.icon_image, (WIDTH / 2 - (self.icon_image.get_width() / 2) - 200, 100))
+        self.create_text("SCORE: " + str(self.score), 40, COIN_COLOR, WIDTH / 2 + 150, 150)
+        self.create_text("HIGHSCORE: " + str(self.highscores[self.current_level]), 40, COIN_COLOR, WIDTH / 2 + 150, 220)
         button = MenuButton(self, WIDTH / 2, HEIGHT / 2 + 160, self.menubutton_image, enter=True)
 
-        pg.display.flip()
-
+        pygame.display.flip()
         self.wait([button.check_click])
-
         self.level_screen()
 
-    def level_screen(self):
-        self.screen.fill(BLACK)
 
-        if self.running is False:
-            return
-
-        self.screen.blit(self.level_image, (WIDTH / 2 - (self.level_image.get_width() / 2),
-                                            HEIGHT / 2 - (self.level_image.get_height() / 2)))
-        button1 = MenuButton(self, WIDTH / 2 + 230, HEIGHT / 2 - 30 - 190, self.startbutton_image)
-        button2 = MenuButton(self, WIDTH / 2 + 230, HEIGHT / 2 - 30, self.startbutton_image)
-        button3 = MenuButton(self, WIDTH / 2 + 230, HEIGHT / 2 - 30 + 190, self.startbutton_image)
-
-        self.new_text("COLLECTED: " + str(self.highscore[0]) + "/" + str(self.levels[0].maxcoins),
-                      30, COIN_COLOR, "chalkboard", WIDTH / 2 - 110, HEIGHT / 2 - 30 - 190 + 65)
-        self.new_text("COLLECTED: " + str(self.highscore[1]) + "/" + str(self.levels[1].maxcoins),
-                      30, COIN_COLOR, "chalkboard", WIDTH / 2 - 110, HEIGHT / 2 - 30 + 65)
-        self.new_text("COLLECTED: " + str(self.highscore[2]) + "/" + str(self.levels[2].maxcoins),
-                      30, COIN_COLOR, "chalkboard", WIDTH / 2 - 110, HEIGHT / 2 - 30 + 190 + 65)
-
-        pg.display.flip()
-
-        level = self.wait([button1.check_click, button2.check_click, button3.check_click])
-
-        self.act_level = level
-
-    def load_screen(self):
-        self.screen.fill(BLACK)
-        self.new_text("loading...", 25, WHITE, "chalkboard", WIDTH / 2, HEIGHT / 2)
-
-        pg.display.flip()
-
-    def save(self):
-        save(self.path + "/assets/highscore_files/highscore.txt", self.highscore, 1)
-
-
-game = Game()
-game.start_screen()
-while game.running:
-    game.new()
-    game.run()
-    game.end_screen()
-game.save()
-
-pg.quit()
+if __name__ == "__main__":
+    game = Game()
+    game.start_screen()
+    while game.running:
+        game.new()
+        game.run()
+        game.end_screen()
+    game.save_highscore()
+    pygame.quit()
