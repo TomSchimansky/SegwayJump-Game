@@ -349,16 +349,35 @@ class Game:
 if __name__ == "__main__":
     game = Game()
     game.start_screen()
+    
     while game.running:
-        game.new()
-        game.run()
-        if game.quit_level:
+        if game.current_level is None:
             game.level_screen()
-        elif game.lost:
-            choice = game.lose_screen()
-            if choice == "menu":
-                game.level_screen()
-        else:
-            game.end_screen()
+            if not game.running:
+                break
+        
+        while True:
+            game.new()
+            game.run()
+            
+            if game.quit_level:
+                game.current_level = None
+                break
+            
+            elif game.lost:
+                choice = game.lose_screen()
+                
+                if choice == "retry":
+                    continue
+                
+                elif choice == "menu":
+                    game.current_level = None
+                    break
+            
+            else:
+                game.end_screen()
+                game.current_level = None
+                break
+    
     game.save_highscore()
     pygame.quit()
