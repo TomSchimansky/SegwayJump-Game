@@ -24,6 +24,8 @@ class Game:
         self.playing = False
         self.pause = False
         self.current_level = None
+        self.lost = False
+        self.quit_level = False
         self.time = 0
         self.command_pressed = False
         self.current_path = os.path.dirname(__file__)
@@ -136,6 +138,8 @@ class Game:
     def new(self):
         self.background_music.stop()
         self.background_music.play(-1)
+        self.lost = False
+        self.quit_level = False
 
         self.current_column_number = 0
         self.current_shift = 0
@@ -227,6 +231,7 @@ class Game:
                 self.player.rect.y = -200
             else:
                 self.playing = False
+                self.lost = True
                 self.die_sound.play()
 
         if self.player.rect.x < 0:
@@ -237,6 +242,7 @@ class Game:
         if pygame.mouse.get_pressed()[0] == 1:
             if WIDTH - 200 < pos[0] < WIDTH - 200 + 180 and 20 < pos[1] < 20 + 60:
                 self.playing = False
+                self.quit_level = True
                 self.button_sound.play()
 
     def events(self):
@@ -298,6 +304,28 @@ class Game:
                 if function() is True:
                     return i
 
+    def lose_screen(self):
+        if self.running is False:
+            return
+
+        self.screen.fill(BLACK)
+        self.create_text("GAME OVER", 60, RED, WIDTH / 2, 150)
+        self.create_text("Score: " + str(self.score), 40, COIN_COLOR, WIDTH / 2, 250)
+        
+        retry_button = MenuButton(self, WIDTH / 2 - 150, HEIGHT / 2 + 50, self.startbutton_image)
+        menu_button = MenuButton(self, WIDTH / 2 + 150, HEIGHT / 2 + 50, self.menubutton_image)
+        
+        self.create_text("RETRY", 30, WHITE, WIDTH / 2 - 150, HEIGHT / 2 + 120)
+        self.create_text("MENU", 30, WHITE, WIDTH / 2 + 150, HEIGHT / 2 + 120)
+
+        pygame.display.flip()
+        choice = self.wait([retry_button.check_click, menu_button.check_click])
+        
+        if choice == 0:
+            return "retry"
+        elif choice == 1:
+            return "menu"
+
     def end_screen(self):
         if self.running is False:
             return
@@ -321,9 +349,35 @@ class Game:
 if __name__ == "__main__":
     game = Game()
     game.start_screen()
+    
     while game.running:
-        game.new()
-        game.run()
-        game.end_screen()
+        if game.current_level is None:
+            game.level_screen()
+            if not game.running:
+                break
+        
+        while True:
+            game.new()
+            game.run()
+            
+            if game.quit_level:
+                game.current_level = None
+                break
+            
+            elif game.lost:
+                choice = game.lose_screen()
+                
+                if choice == "retry":
+                    continue
+                
+                elif choice == "menu":
+                    game.current_level = None
+                    break
+            
+            else:
+                game.end_screen()
+                game.current_level = None
+                break
+    
     game.save_highscore()
     pygame.quit()
